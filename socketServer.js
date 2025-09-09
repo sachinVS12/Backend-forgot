@@ -32,7 +32,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "http://3.111.219.210:4000",
+    origin: "http://3.111.219.210:3000",
     methods: ["GET", "POST"],
   },
 });
