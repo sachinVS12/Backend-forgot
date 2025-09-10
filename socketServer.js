@@ -341,7 +341,7 @@ const startTopicStream = (topic) => {
 };
 
 /* Start the Socket.IO server and initialize MQTT subscriptions */
-const socketPort = process.env.SOCKET_PORT || 4000;
+const socketPort = process.env.SOCKET_PORT || 6000;
 server.listen(socketPort, "0.0.0.0", () => {
   logger.info(`Socket.IO Server running on port ${socketPort}`);
 
@@ -369,5 +369,5 @@ server.listen(socketPort, "0.0.0.0", () => {
     } catch (err) {
       logger.error(`Error subscribing to topics: ${err.message}`);
     }
-  }, 5000);
+  }, 9000);
 });
