@@ -70,7 +70,7 @@ app.use(errorHandler);
 connectDB();
 
 // Start server
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 9000;
 app.listen(port, "0.0.0.0", () => {
   logger.info(`API Server running on port ${port}`);
 });
