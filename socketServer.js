@@ -3,7 +3,10 @@ const winston = require("winston");
 const dotenv = require("dotenv");
 const http = require("http");
 const { Server } = require("socket.io");
-const { subscribeToTopic, getLatestLiveMessage } = require("./middlewares/mqttHandler");
+const {
+  subscribeToTopic,
+  getLatestLiveMessage,
+} = require("./middlewares/mqttHandler");
 const SubscribedTopic = require("./models/subscribed-topic-model");
 const express = require("express");
 const connectDB = require("./env/db");
@@ -32,7 +35,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "http://3.111.219.210:3000",
+    origin: "*",
     methods: ["GET", "POST"],
   },
 });
@@ -52,11 +55,11 @@ io.on("connection", (socket) => {
       subscriptions.set(topic, true);
 
       if (!activeTopics.has(topic)) {
-        activeTopics.set(topic, { 
-          clients: new Set(), 
-          lastMessage: null, 
-          lastSentTime: null, 
-          interval: null 
+        activeTopics.set(topic, {
+          clients: new Set(),
+          lastMessage: null,
+          lastSentTime: null,
+          interval: null,
         });
         startTopicStream(topic);
       }
@@ -65,7 +68,11 @@ io.on("connection", (socket) => {
 
       const latestMessage = await getLatestLiveMessage(topic);
       if (latestMessage) {
-        socket.emit("liveMessage", { success: true, message: latestMessage, topic });
+        socket.emit("liveMessage", {
+          success: true,
+          message: latestMessage,
+          topic,
+        });
       }
     } catch (error) {
       logger.error(`Subscription error for ${topic}: ${error.message}`);
@@ -118,14 +125,20 @@ const startTopicStream = (topic) => {
       const latestMessage = await getLatestLiveMessage(topic);
 
       if (latestMessage) {
-        const hasChanged = !topicData.lastMessage || 
-                          topicData.lastMessage.message.message !== latestMessage.message.message;
-        const timeSinceLastSent = topicData.lastSentTime ? 
-                                  (currentTime - topicData.lastSentTime) : 
-                                  Infinity;
+        const hasChanged =
+          !topicData.lastMessage ||
+          topicData.lastMessage.message.message !==
+            latestMessage.message.message;
+        const timeSinceLastSent = topicData.lastSentTime
+          ? currentTime - topicData.lastSentTime
+          : Infinity;
 
         if (hasChanged || timeSinceLastSent >= 1000) {
-          io.to(topic).emit("liveMessage", { success: true, message: latestMessage, topic });
+          io.to(topic).emit("liveMessage", {
+            success: true,
+            message: latestMessage,
+            topic,
+          });
           topicData.lastMessage = latestMessage;
           topicData.lastSentTime = currentTime;
         }
@@ -143,17 +156,24 @@ server.listen(socketPort, "0.0.0.0", () => {
 
   setTimeout(async () => {
     try {
-      const SubscribedTopicList = await SubscribedTopic.find({}, { _id: 0, topic: 1 });
+      const SubscribedTopicList = await SubscribedTopic.find(
+        {},
+        { _id: 0, topic: 1 }
+      );
       if (SubscribedTopicList?.length > 0) {
         const topicsToSubscribe = [];
-        
+
         SubscribedTopicList.forEach(({ topic }) => {
-          topicsToSubscribe.push(topic);              
-          topicsToSubscribe.push(`${topic}|backup`);  
+          topicsToSubscribe.push(topic);
+          topicsToSubscribe.push(`${topic}|backup`);
         });
 
-        await Promise.all(topicsToSubscribe.map(topic => subscribeToTopic(topic)));
-        logger.info("MQTT topics (including backup topics) subscribed successfully");
+        await Promise.all(
+          topicsToSubscribe.map((topic) => subscribeToTopic(topic))
+        );
+        logger.info(
+          "MQTT topics (including backup topics) subscribed successfully"
+        );
       }
     } catch (err) {
       logger.error(`Error subscribing to topics: ${err.message}`);
